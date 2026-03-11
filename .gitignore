@@ -1,0 +1,30 @@
+# macOS
+.DS_Store
+
+# Local assistant / IDE metadata
+.claude/
+.idea/
+*.iml
+
+# Gradle and Kotlin local state
+.gradle/
+.gradle-local/
+.kotlin/
+
+# IntelliJ Platform Gradle Plugin local cache
+.intellijPlatform/
+
+# Build outputs
+build/
+out/
+
+# IntelliJ plugin sandbox
+idea-sandbox/
+
+# Demo subproject local state
+demo/.gradle/
+demo/.idea/
+demo/.kotlin/
+demo/.run/
+demo/build/
+demo/out/
