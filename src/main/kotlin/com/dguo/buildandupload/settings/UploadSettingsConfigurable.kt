@@ -23,7 +23,14 @@ class UploadSettingsConfigurable : SearchableConfigurable {
 		val settings = UploadSettingsState.getInstance()
 		return comp.executablePath != settings.executablePath ||
 			comp.additionalArgs != settings.additionalArgs ||
-			comp.workingDirectory != settings.workingDirectory
+			comp.workingDirectory != settings.workingDirectory ||
+			comp.deleteExecutablePath != settings.deleteExecutablePath ||
+			comp.deleteAdditionalArgs != settings.deleteAdditionalArgs ||
+			comp.manifestScriptPath != settings.manifestScriptPath ||
+			comp.manifestWorkingDirectory != settings.manifestWorkingDirectory ||
+			comp.manifestBaseCommit != settings.manifestBaseCommit ||
+			comp.manifestHeadRef != settings.manifestHeadRef ||
+			comp.deployedCommitFilePath != settings.deployedCommitFilePath
 	}
 
 	override fun apply() {
@@ -32,6 +39,13 @@ class UploadSettingsConfigurable : SearchableConfigurable {
 		settings.executablePath = comp.executablePath
 		settings.additionalArgs = comp.additionalArgs
 		settings.workingDirectory = comp.workingDirectory
+		settings.deleteExecutablePath = comp.deleteExecutablePath
+		settings.deleteAdditionalArgs = comp.deleteAdditionalArgs
+		settings.manifestScriptPath = comp.manifestScriptPath
+		settings.manifestWorkingDirectory = comp.manifestWorkingDirectory
+		settings.manifestBaseCommit = comp.manifestBaseCommit
+		settings.manifestHeadRef = comp.manifestHeadRef
+		settings.deployedCommitFilePath = comp.deployedCommitFilePath
 	}
 
 	override fun reset() {
@@ -40,6 +54,13 @@ class UploadSettingsConfigurable : SearchableConfigurable {
 		comp.executablePath = settings.executablePath
 		comp.additionalArgs = settings.additionalArgs
 		comp.workingDirectory = settings.workingDirectory
+		comp.deleteExecutablePath = settings.deleteExecutablePath
+		comp.deleteAdditionalArgs = settings.deleteAdditionalArgs
+		comp.manifestScriptPath = settings.manifestScriptPath
+		comp.manifestWorkingDirectory = settings.manifestWorkingDirectory
+		comp.manifestBaseCommit = settings.manifestBaseCommit
+		comp.manifestHeadRef = settings.manifestHeadRef
+		comp.deployedCommitFilePath = settings.deployedCommitFilePath
 	}
 
 	override fun disposeUIResources() {

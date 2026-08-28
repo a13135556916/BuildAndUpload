@@ -1,10 +1,10 @@
 plugins {
-	kotlin("jvm") version "2.1.0"
+	kotlin("jvm") version "2.4.0"
 	id("org.jetbrains.intellij.platform") version "2.10.2"
 }
 
 group = "com.dguo"
-version = "1.0-SNAPSHOT"
+version = "1.1-SNAPSHOT"
 
 val localIdePath = providers
 	.gradleProperty("localIdePath")
@@ -25,6 +25,7 @@ dependencies {
 	intellijPlatform {
 		local(localIdePath.get())
 		bundledPlugin("com.intellij.java")
+		bundledModule("intellij.platform.vcs.log")
 	}
 }
 

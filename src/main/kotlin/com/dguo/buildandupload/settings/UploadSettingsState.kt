@@ -12,7 +12,14 @@ class UploadSettingsState : PersistentStateComponent<UploadSettingsState.Data> {
 	data class Data(
 		var executablePath: String = "",
 		var additionalArgs: String = "",
-		var workingDirectory: String = ""
+		var workingDirectory: String = "",
+		var deleteExecutablePath: String = "",
+		var deleteAdditionalArgs: String = "",
+		var manifestScriptPath: String = "tasks/collect_deploy_manifest.sh",
+		var manifestWorkingDirectory: String = "",
+		var manifestBaseCommit: String = "",
+		var manifestHeadRef: String = "HEAD",
+		var deployedCommitFilePath: String = ""
 	)
 
 	companion object {
@@ -46,5 +53,47 @@ class UploadSettingsState : PersistentStateComponent<UploadSettingsState.Data> {
 		get() = state.workingDirectory
 		set(value) {
 			state.workingDirectory = value
+		}
+
+	var deleteExecutablePath: String
+		get() = state.deleteExecutablePath
+		set(value) {
+			state.deleteExecutablePath = value
+		}
+
+	var deleteAdditionalArgs: String
+		get() = state.deleteAdditionalArgs
+		set(value) {
+			state.deleteAdditionalArgs = value
+		}
+
+	var manifestScriptPath: String
+		get() = state.manifestScriptPath
+		set(value) {
+			state.manifestScriptPath = value
+		}
+
+	var manifestWorkingDirectory: String
+		get() = state.manifestWorkingDirectory
+		set(value) {
+			state.manifestWorkingDirectory = value
+		}
+
+	var manifestBaseCommit: String
+		get() = state.manifestBaseCommit
+		set(value) {
+			state.manifestBaseCommit = value
+		}
+
+	var manifestHeadRef: String
+		get() = state.manifestHeadRef
+		set(value) {
+			state.manifestHeadRef = value
+		}
+
+	var deployedCommitFilePath: String
+		get() = state.deployedCommitFilePath
+		set(value) {
+			state.deployedCommitFilePath = value
 		}
 }

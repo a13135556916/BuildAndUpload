@@ -2,9 +2,11 @@ package com.dguo.buildandupload.actions
 
 import com.dguo.buildandupload.notifications.BuildAndUploadNotifier
 import com.dguo.buildandupload.service.BuildAndUploadService
+import com.dguo.buildandupload.service.JavaCompileService
 import com.dguo.buildandupload.util.ClassFileLocator
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.compiler.CompilerPaths
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.module.Module
@@ -24,7 +26,8 @@ class BuildAndUploadAction : AnAction() {
 	override fun update(e: AnActionEvent) {
 		val project = e.project
 		val hasChanges = project != null && ChangeListManager.getInstance(project).allChanges.isNotEmpty()
-		e.presentation.isEnabledAndVisible = project != null && hasChanges
+		e.presentation.isVisible = project != null
+		e.presentation.isEnabled = project != null && hasChanges
 	}
 
 	override fun actionPerformed(e: AnActionEvent) {
@@ -36,24 +39,32 @@ class BuildAndUploadAction : AnAction() {
 			return
 		}
 
-		val (filesToUpload, skipped) = collectFiles(project, changes)
-		if (filesToUpload.isEmpty()) {
-			val reason = if (skipped.isNotEmpty()) skipped.joinToString("; ") else "无可处理的文件。"
-			BuildAndUploadNotifier.error(project, "没有可上传的文件：$reason")
-			return
-		}
+		val javaFiles = collectJavaFiles(changes)
+		JavaCompileService.compile(
+			project = project,
+			javaFiles = javaFiles,
+			startMessage = "开始编译 ${javaFiles.size} 个 Java 文件 ...",
+			successMessage = "Java 编译完成，开始收集上传文件。"
+		) {
+			val (filesToUpload, skipped) = collectFiles(project, changes)
+			if (filesToUpload.isEmpty()) {
+				val reason = if (skipped.isNotEmpty()) skipped.joinToString("; ") else "无可处理的文件。"
+				BuildAndUploadNotifier.error(project, "没有可上传的文件：$reason")
+				return@compile
+			}
 
-		if (skipped.isNotEmpty()) {
-			BuildAndUploadNotifier.info(project, "部分文件已跳过：${skipped.joinToString("; ")}")
-		}
+			if (skipped.isNotEmpty()) {
+				BuildAndUploadNotifier.info(project, "部分文件已跳过：${skipped.joinToString("; ")}")
+			}
 
-		BuildAndUploadService.getInstance(project).upload(filesToUpload.toList())
+			BuildAndUploadService.getInstance(project).upload(filesToUpload.toList())
+		}
 	}
 
 	private fun collectFiles(
 		project: Project,
 		changes: Collection<Change>
-	): Pair<Set<Path>, List<String>> {
+	): Pair<Set<Path>, List<String>> = ReadAction.compute<Pair<Set<Path>, List<String>>, RuntimeException> {
 		val fileIndex = ProjectFileIndex.getInstance(project)
 		val files = LinkedHashSet<Path>()
 		val skipped = mutableListOf<String>()
@@ -70,13 +81,18 @@ class BuildAndUploadAction : AnAction() {
 			}
 		}
 
-		return files to skipped
+		files to skipped
 	}
 
 	private fun resolveVirtualFile(change: Change): VirtualFile? {
 		change.virtualFile?.let { return it }
 		val afterPath = change.afterRevision?.file?.path ?: return null
 		return LocalFileSystem.getInstance().findFileByPath(afterPath)
+	}
+
+	private fun collectJavaFiles(changes: Collection<Change>): List<VirtualFile> {
+		return changes.mapNotNull(::resolveVirtualFile)
+			.filter { file -> file.isValid && file.isInLocalFileSystem && file.extension.equals("java", ignoreCase = true) }
 	}
 
 	private fun locateClassFiles(
