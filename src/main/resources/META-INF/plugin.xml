@@ -9,6 +9,7 @@
   <description><![CDATA[<p><strong>Build &amp; Upload</strong> 基于 Git 变更进行编译与上传：</p>
         <ul>
             <li><code>Alt</code> + <code>-</code> 或 Tools | Build &amp; Upload：读取 Git 修改/新增，Java 上传对应 .class，JS 直接上传。</li>
+            <li>项目视图 / 编辑器右键 | 编译该 Java 文件并上传：只编译当前选中的一个或多个 Java 文件并上传对应 .class，不依赖 Git 变更。</li>
             <li>Tools | Build &amp; Upload By Manifest：调用部署清单脚本生成 <code>upload-manifest.tsv</code>，并复用 IDEA Deployment 上传。</li>
             <li><code>Ctrl</code> + <code>Shift</code> + <code>F11</code> 或 Tools | Compile Changed Java：仅编译 Git 修改/新增的 Java 文件。</li>
             <li>默认调用 IDE Deployment 上传，也可在 Settings | Build &amp; Upload 中配置自定义上传/删除脚本。</li>
@@ -32,6 +33,15 @@
         description="上传 Git 变更中的 Java/JS 文件">
       <add-to-group group-id="ToolsMenu" anchor="last" />
       <keyboard-shortcut keymap="$default" first-keystroke="alt MINUS" />
+    </action>
+    <action
+        id="com.dguo.buildandupload.actions.BuildAndUploadSelectedAction"
+        class="com.dguo.buildandupload.actions.BuildAndUploadSelectedAction"
+        text="编译该 Java 文件并上传"
+        description="编译当前选中的 Java 文件并上传对应 .class，不依赖 Git 变更">
+      <add-to-group group-id="ProjectViewPopupMenuSettingsGroup" anchor="last" />
+      <add-to-group group-id="EditorPopupMenu" anchor="last" />
+      <add-to-group group-id="EditorTabPopupMenu" anchor="last" />
     </action>
     <action
         id="com.dguo.buildandupload.actions.CompileChangedJavaAction"

@@ -24,7 +24,9 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.util.execution.ParametersListUtil
 import java.awt.event.InputEvent
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.util.LinkedHashSet
+import java.util.Locale
 
 @Service(Service.Level.PROJECT)
 class BuildAndUploadService(private val project: Project) {
@@ -38,6 +40,36 @@ class BuildAndUploadService(private val project: Project) {
 
 		fun getInstance(project: Project): BuildAndUploadService =
 			project.getService(BuildAndUploadService::class.java)
+	}
+
+	/**
+	 * 编译 [sourceFiles] 中的 Java 文件，成功后上传生成的 .class；JS 文件直接上传，其余类型忽略。
+	 */
+	fun compileAndUpload(sourceFiles: Collection<VirtualFile>) {
+		val candidates = sourceFiles.asSequence()
+			.filter { file -> file.isValid && file.isInLocalFileSystem && !file.isDirectory }
+			.distinctBy(VirtualFile::getPath)
+			.toList()
+		val javaFiles = candidates.filter { file -> file.extension.equals("java", ignoreCase = true) }
+		JavaCompileService.compile(
+			project = project,
+			javaFiles = javaFiles,
+			startMessage = "开始编译 ${javaFiles.size} 个 Java 文件 ...",
+			successMessage = "Java 编译完成，开始收集上传文件。"
+		) {
+			val (filesToUpload, skipped) = collectUploadFiles(candidates)
+			if (filesToUpload.isEmpty()) {
+				val reason = if (skipped.isNotEmpty()) skipped.joinToString("; ") else "无可处理的文件。"
+				BuildAndUploadNotifier.error(project, "没有可上传的文件：$reason")
+				return@compile
+			}
+
+			if (skipped.isNotEmpty()) {
+				BuildAndUploadNotifier.info(project, "部分文件已跳过：${skipped.joinToString("; ")}")
+			}
+
+			upload(filesToUpload.toList())
+		}
 	}
 
 	fun upload(files: List<Path>) {
@@ -225,11 +257,40 @@ class BuildAndUploadService(private val project: Project) {
 			files.toList()
 		}
 
-	private fun locateCompiledClassFiles(fileIndex: ProjectFileIndex, virtualFile: VirtualFile): List<Path> {
-		val module: Module = fileIndex.getModuleForFile(virtualFile) ?: return emptyList()
-		val sourceRoot = fileIndex.getSourceRootForFile(virtualFile) ?: return emptyList()
-		val moduleOutputPath = CompilerPaths.getModuleOutputDirectory(module, false)?.path ?: return emptyList()
-		val relativeSourcePath = VfsUtilCore.getRelativePath(virtualFile, sourceRoot) ?: return emptyList()
-		return ClassFileLocator.locate(moduleOutputPath, relativeSourcePath)
+	private fun collectUploadFiles(sourceFiles: List<VirtualFile>): Pair<Set<Path>, List<String>> =
+		ReadAction.compute<Pair<Set<Path>, List<String>>, RuntimeException> {
+			val fileIndex = ProjectFileIndex.getInstance(project)
+			val files = LinkedHashSet<Path>()
+			val skipped = mutableListOf<String>()
+
+			for (virtualFile in sourceFiles) {
+				when (virtualFile.extension?.lowercase(Locale.ROOT)) {
+					"java" -> files.addAll(locateCompiledClassFiles(fileIndex, virtualFile, skipped))
+					"js" -> files.add(Paths.get(virtualFile.path))
+				}
+			}
+
+			files to skipped
+		}
+
+	private fun locateCompiledClassFiles(
+		fileIndex: ProjectFileIndex,
+		virtualFile: VirtualFile,
+		skipped: MutableList<String>? = null
+	): List<Path> {
+		fun skip(reason: String): List<Path> {
+			skipped?.add("${virtualFile.name} $reason")
+			return emptyList()
+		}
+
+		val module: Module = fileIndex.getModuleForFile(virtualFile) ?: return skip("未找到所属 Module")
+		val sourceRoot = fileIndex.getSourceRootForFile(virtualFile) ?: return skip("不在 Source Root 中")
+		val moduleOutputPath = CompilerPaths.getModuleOutputDirectory(module, false)?.path ?: return skip("未配置输出目录")
+		val relativeSourcePath = VfsUtilCore.getRelativePath(virtualFile, sourceRoot) ?: return skip("无法计算相对路径")
+		val classFiles = ClassFileLocator.locate(moduleOutputPath, relativeSourcePath)
+		if (classFiles.isEmpty()) {
+			skip("未找到对应 .class")
+		}
+		return classFiles
 	}
 }
